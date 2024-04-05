@@ -1,7 +1,8 @@
 import jax
 import jax.numpy as jnp
 from flax.core.frozen_dict import freeze, unfreeze
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
+
 from tqdm import tqdm
 
 
