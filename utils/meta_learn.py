@@ -8,8 +8,8 @@ DEFAULT_RESOLUTION = 64
 x1 = jnp.linspace(0, 1, DEFAULT_RESOLUTION + 1)[:-1]
 DEFAULT_GRID = jnp.stack(jnp.meshgrid(x1, x1, indexing="ij"), axis=-1)[None, ...]
 
-CELEBA_BUILDER = tfds.builder("celeb_a", data_dir="gs://celeb_a_dataset/", version="2.1.0")
-CELEBA_BUILDER.download_and_prepare()
+# CELEBA_BUILDER = tfds.builder("celeb_a", data_dir="gs://celeb_a_dataset/", version="2.1.0")
+# CELEBA_BUILDER.download_and_prepare()
 
 
 def process_example(example, RES):
