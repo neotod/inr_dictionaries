@@ -1,53 +1,65 @@
 import haiku as hk
 import jax
 import jax.numpy as jnp
+import os
 
-params_path = '/run/media/neo/joint/compsci/projects/ParAcNet/parac_parameters.npz'
-parac_params = jnp.load(params_path)
-print(parac_params)
+parac_params = jnp.load(os.getenv("PARAC_PARAMS_PATH"))
 
 
 class PARACLayer(hk.Module):
-    def __init__(self, in_f, out_f, layer_idx, bias=True, omega_0=200, is_first=False):
+    def __init__(
+        self, in_f, out_f, layer_idx, bias=True, w0=30, is_first=False, is_last=False
+    ):
         super().__init__()
         self.in_f = in_f
         self.out_f = out_f
         self.bias = bias
+        self.w0 = w0
         self.is_first = is_first
-        self.omega_0 = omega_0
+        self.is_last = is_last
         self.layer_idx = layer_idx
 
         self.nf = 5
 
     def __call__(self, x):
         self.ws = hk.get_parameter(
-            "weights", shape=(self.nf,), init=parac_params[self.layer_idx]["ws"]
+            "weights",
+            shape=(self.nf,),
+            init=lambda x1, x2: parac_params["ws"][self.layer_idx],
         )
         self.phis = hk.get_parameter(
-            "phis", shape=(self.nf,), init=parac_params[self.layer_idx]["phis"]
+            "phis",
+            shape=(self.nf,),
+            init=lambda x1, x2: parac_params["phis"][self.layer_idx],
         )
         self.bs = hk.get_parameter(
-            "biases", shape=(self.nf,), init=parac_params[self.layer_idx]["bs"]
+            "biases",
+            shape=(self.nf,),
+            init=lambda x1, x2: parac_params["bs"][self.layer_idx],
         )
 
         x = hk.Linear(
             output_size=self.out_f,
-            bias=self.bias,
+            with_bias=self.bias,
             w_init=hk.initializers.RandomUniform(
                 -1 / jnp.sqrt(self.in_f), 1 / jnp.sqrt(self.in_f)
             ),
         )(x)
 
-        x = self.params_dict(x)
+        x = self.parac_activation(x)
         return x
 
     def parac_activation(self, x):
-        x = x[:, :, :, None].broadcast_to(self.ws.shape)
-        wsx = hk.broadcast(self.ws, x.shape)
-        bsx = hk.broadcast(self.bs, x.shape)
-        phisx = hk.broadcast(self.phis, x.shape)
-        temp = bsx * (hk.sin((wsx * x) + phisx))
-        temp2 = hk.sum(temp, axis=3)
+        x = x[:, :, None]
+        x = x.repeat(self.ws.shape[0], axis=-1)
+
+        wsx = jnp.broadcast_to(self.ws, (*x.shape[:-1], self.ws.shape[0]))
+        bsx = jnp.broadcast_to(self.bs, (*x.shape[:-1], self.bs.shape[0]))
+        phisx = jnp.broadcast_to(self.phis, (*x.shape[:-1], self.phis.shape[0]))
+
+        temp = bsx * jnp.sin((wsx * x) + phisx)
+        temp2 = jnp.sum(temp, axis=-1)
+
         return temp2
 
 
@@ -62,6 +74,7 @@ class PARAC(hk.Module):
     def __call__(self, coords):
         sh = coords.shape
         x = jnp.reshape(coords, [-1, 2])
+
         x = PARACLayer(x.shape[-1], self.width, 0, is_first=True, w0=self.w0)(x)
 
         for i in range(self.depth - 2):

@@ -30,7 +30,7 @@ def get_ntk_fn(apply_fn, variables, batch_size):
     return expanded_kernel_fn
 
 
-def ntk_eigendecomposition(apply_fn, variables, data, batch_size):
+def ntk_eigendecomposition(apply_fn, variables, data, batch_size):    
     kernel_fn = get_ntk_fn(apply_fn, variables, batch_size)
 
     if "params" in variables:
