@@ -4,6 +4,7 @@ import pickle
 import haiku as hk
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from jax import random
 
@@ -29,12 +30,17 @@ def show_ntk_eigval_eigvec(
         os.makedirs(outdir)
 
     eigvals, eigvecs, ntk_matrix = ntk_eigendecomposition(model.apply, params, data, batch_size)
+    np.save(outdir + os.path.sep + keyword + "eigvals" + ".npy", eigvals)
+
+    print('saving the ntk_matrix')
+    np.save(outdir + os.path.sep + keyword + "ntk_matrix" + ".npy", ntk_matrix)
+    
 
     plt.figure()
     plt.plot(eigvals)
     sns.despine()
     if savefig:
-        plt.savefig(outdir + os.path.sep + keyword + "eigvals" + ".pdf", bbox_inches="tight")
+        plt.savefig(outdir + os.path.sep + keyword + "eigvals" + ".png", bbox_inches="tight")
     plt.close()
 
     plt.figure()
@@ -42,7 +48,7 @@ def show_ntk_eigval_eigvec(
     sns.despine()
     if savefig:
         plt.savefig(
-            outdir + os.path.sep + keyword + "eigvals_normalized" + ".pdf",
+            outdir + os.path.sep + keyword + "eigvals_normalized" + ".png",
             bbox_inches="tight",
         )
     plt.close()
@@ -56,7 +62,7 @@ def show_ntk_eigval_eigvec(
         plt.axis("off")
         if savefig:
             plt.savefig(
-                outdir + os.path.sep + keyword + "eigvec" + str(i) + ".pdf",
+                outdir + os.path.sep + keyword + "eigvec" + str(i) + ".png",
                 bbox_inches="tight",
             )
 
@@ -76,7 +82,7 @@ if __name__ == "__main__":
     params_SIREN = model_SIREN.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
     model_PARAC = hk.without_apply_rng(
-        hk.transform(lambda x: PARAC(w0=30, width=256, hidden_w0=30, depth=3)(x))
+        hk.transform(lambda x: PARAC(w0=30, width=256, hidden_w0=30, depth=5)(x))
     )
     params_PARAC = model_PARAC.init(random.PRNGKey(0), jnp.ones((1, 2)))
 

@@ -2,6 +2,9 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 parac_params = jnp.load(os.getenv("PARAC_PARAMS_PATH"))
 
@@ -23,7 +26,7 @@ class PARACLayer(hk.Module):
 
     def __call__(self, x):
         self.ws = hk.get_parameter(
-            "weights",
+            "omegas",
             shape=(self.nf,),
             init=lambda x1, x2: parac_params["ws"][self.layer_idx],
         )
@@ -33,7 +36,7 @@ class PARACLayer(hk.Module):
             init=lambda x1, x2: parac_params["phis"][self.layer_idx],
         )
         self.bs = hk.get_parameter(
-            "biases",
+            "bs",
             shape=(self.nf,),
             init=lambda x1, x2: parac_params["bs"][self.layer_idx],
         )
@@ -66,7 +69,7 @@ class PARACLayer(hk.Module):
 class PARAC(hk.Module):
     def __init__(self, w0, width, hidden_w0, depth):
         super().__init__()
-        self.w0 = w0  # to change the omega_0 of PARAC !!!!
+        self.w0 = w0
         self.width = width
         self.depth = depth
         self.hidden_w0 = hidden_w0
@@ -77,12 +80,10 @@ class PARAC(hk.Module):
 
         x = PARACLayer(x.shape[-1], self.width, 0, is_first=True, w0=self.w0)(x)
 
-        for i in range(self.depth - 2):
-            x = PARACLayer(x.shape[-1], self.width, i + 1, w0=self.hidden_w0)(x)
+        for i in range(1, self.depth - 1):
+            x = PARACLayer(x.shape[-1], self.width, i, w0=self.hidden_w0)(x)
 
-        out = PARACLayer(
-            x.shape[-1], 1, self.depth - 1, w0=self.hidden_w0, is_last=True
-        )(x)
+        out = hk.Linear(1)(x)
         out = jnp.reshape(out, list(sh[:-1]) + [1])
 
         return out

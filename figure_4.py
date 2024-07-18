@@ -10,7 +10,7 @@ import tensorflow_datasets as tfds
 from jax import random
 from tqdm import tqdm
 
-from models.models_haiku import MLP, SIREN
+from models.models_haiku import MLP, SIREN, PARAC
 from utils.graphics import FOURIER_CMAP
 from utils.meta_learn import CELEBA_BUILDER, DEFAULT_GRID, DEFAULT_RESOLUTION, process_example
 from utils.ntk import ntk_eigendecomposition
@@ -67,6 +67,11 @@ if __name__ == "__main__":
     with open("maml_celebA_5000.pickle", "rb") as handle:
         params_meta = pickle.load(handle)
 
+    model_PARAC = hk.without_apply_rng(
+        hk.transform(lambda x: PARAC(w0=30, width=256, hidden_w0=30, depth=5)(x))
+    )
+    params_PARAC = model_PARAC.init(random.PRNGKey(0), jnp.ones((1, 2)))
+
     model_MLP = hk.without_apply_rng(hk.transform(lambda x: MLP(width=256, depth=5)(x)))
     params_mlp = model_MLP.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
@@ -111,6 +116,11 @@ if __name__ == "__main__":
     params_100 = model_SIREN_100.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
     # Compute their NTK eigenvectors
+
+    print("NTK eigendecomposition of PARAC...")
+    eigvals_parac, eigvecs_parac, ntk_matrix_parac = ntk_eigendecomposition(
+        model_PARAC.apply, params_PARAC, data=DEFAULT_GRID, batch_size=BATCH_SIZE
+    )
 
     print("NTK eigendecomposition of SIREN-(meta)...")
     eigvals_meta, eigvecs_meta, ntk_matrix_meta = ntk_eigendecomposition(
@@ -158,6 +168,15 @@ if __name__ == "__main__":
     )
 
     # Plot the energy-eigenvalue plot
+    print("Projecting on PARAC...")
+    (
+        parac_energy_mean_demean,
+        parac_energy_std_demean,
+        parac_energy_covered_demean,
+    ) = energy_eigval_treshold(
+        eigvecs_parac, eigvals_parac, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
+
     print("Projecting on SIREN-(meta)...")
     (
         meta_energy_mean_demean,
@@ -291,6 +310,14 @@ if __name__ == "__main__":
         label="SIREN (Meta)",
         linewidth=2,
         color="darkred",
+    )
+
+    ax.semilogx(
+        eigvals_parac / jnp.max(eigvals_parac),
+        parac_energy_mean_demean,
+        label="PARAC",
+        linewidth=2,
+        color='blue',
     )
 
     plt.xlim(1, 1e-10)
