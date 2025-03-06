@@ -19,7 +19,7 @@ class FINERLayer(hk.Module):
         self.bs_scale = bs_scale
 
 
-    def gen_scale(x):
+    def gen_scale(self, x):
         return jnp.abs(x) + 1
 
     def __call__(self, x):
