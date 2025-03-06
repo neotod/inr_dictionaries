@@ -6,7 +6,60 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-parac_params = jnp.load(os.getenv("PARAC_PARAMS_PATH"))
+# parac_params = jnp.load(os.getenv("PARAC_PARAMS_PATH")) # ! uncomment this for parac
+
+class FINERLayer(hk.Module):
+    def __init__(self, in_f, out_f, w0=200, bs_scale=5, is_first=False, is_last=False):
+        super().__init__()
+        self.w0 = w0
+        self.is_first = is_first
+        self.is_last = is_last
+        self.out_f = out_f
+        self.ws_range = 1 / in_f if self.is_first else jnp.sqrt(6 / in_f) / w0
+        self.bs_scale = bs_scale
+
+
+    def gen_scale(x):
+        return jnp.abs(x) + 1
+
+    def __call__(self, x):
+        if self.is_first:
+            x = hk.Linear(
+                output_size=self.out_f,
+                w_init=hk.initializers.RandomUniform(-self.ws_range, self.ws_range),
+                b_init=hk.initializers.RandomUniform(-self.bs_scale, self.bs_scale),
+            )(x)
+        else:
+            x = hk.Linear(
+                output_size=self.out_f,
+                w_init=hk.initializers.RandomUniform(-self.ws_range, self.ws_range),
+            )(x)
+
+        return x + 0.5 if self.is_last else self.w0 * self.gen_scale(x)
+
+class FINER(hk.Module):
+    def __init__(self, w0, bs_scale, width, hidden_w0, depth):
+        super().__init__()
+        self.w0 = w0
+        self.bs_scale = bs_scale
+        self.width = width
+        self.depth = depth
+        self.hidden_w0 = hidden_w0
+
+    def __call__(self, coords):
+        sh = coords.shape
+        x = jnp.reshape(coords, [-1, 2])
+        x = FINERLayer(x.shape[-1], self.width, is_first=True, w0=self.w0, bs_scale=self.bs_scale)(x)
+        x = jnp.sin(x)
+
+        for _ in range(self.depth - 2):
+            x = FINERLayer(x.shape[-1], self.width, w0=self.hidden_w0)(x)
+            x = jnp.sin(x)
+
+        out = FINERLayer(x.shape[-1], 1, w0=self.hidden_w0, is_last=True)(x)
+        out = jnp.reshape(out, list(sh[:-1]) + [1])
+
+        return out
 
 
 class PARACLayer(hk.Module):

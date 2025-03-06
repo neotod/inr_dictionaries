@@ -10,9 +10,14 @@ import tensorflow_datasets as tfds
 from jax import random
 from tqdm import tqdm
 
-from models.models_haiku import MLP, SIREN, PARAC
+from models.models_haiku import FINER, MLP, SIREN, PARAC
 from utils.graphics import FOURIER_CMAP
-from utils.meta_learn import CELEBA_BUILDER, DEFAULT_GRID, DEFAULT_RESOLUTION, process_example
+from utils.meta_learn import (
+    CELEBA_BUILDER,
+    DEFAULT_GRID,
+    DEFAULT_RESOLUTION,
+    process_example,
+)
 from utils.ntk import ntk_eigendecomposition
 
 
@@ -31,7 +36,9 @@ def energy_eigval_treshold(eigvecs, eigvals, num_examples, ds_test):
         img_ntk_eigvec_basis_rep = eigvecs @ vec_img
         norm_img = jnp.linalg.norm(vec_img)
 
-        energy_in_comp = jnp.square(jnp.abs(img_ntk_eigvec_basis_rep)) / jnp.square(norm_img)
+        energy_in_comp = jnp.square(jnp.abs(img_ntk_eigvec_basis_rep)) / jnp.square(
+            norm_img
+        )
 
         percent_energy = np.zeros_like(energy_in_comp)
         for j, val in enumerate(energy_in_comp):
@@ -53,7 +60,7 @@ if __name__ == "__main__":
     BATCH_SIZE = 256
     NUM_EXAMPLES = 100
     DEFAULT_GRID = jnp.reshape(DEFAULT_GRID, [-1, 2])
-    
+
     outdir = os.path.join(os.getcwd(), "figures", "figure_4")
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -71,6 +78,13 @@ if __name__ == "__main__":
         hk.transform(lambda x: PARAC(w0=30, width=256, hidden_w0=30, depth=5)(x))
     )
     params_PARAC = model_PARAC.init(random.PRNGKey(0), jnp.ones((1, 2)))
+
+    model_FINER = hk.without_apply_rng(
+        hk.transform(
+            lambda x: FINER(w0=30, bs_scale=5, width=256, hidden_w0=30, depth=5)(x)
+        )
+    )
+    params_FINER = model_FINER.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
     model_MLP = hk.without_apply_rng(hk.transform(lambda x: MLP(width=256, depth=5)(x)))
     params_mlp = model_MLP.init(random.PRNGKey(0), jnp.ones((1, 2)))
@@ -116,6 +130,11 @@ if __name__ == "__main__":
     params_100 = model_SIREN_100.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
     # Compute their NTK eigenvectors
+
+    print("NTK eigendecomposition of FINER...")
+    eigvals_finer, eigvecs_finer, ntk_matrix_finer = ntk_eigendecomposition(
+        model_FINER.apply, params_FINER, data=DEFAULT_GRID, batch_size=BATCH_SIZE
+    )
 
     print("NTK eigendecomposition of PARAC...")
     eigvals_parac, eigvecs_parac, ntk_matrix_parac = ntk_eigendecomposition(
@@ -191,56 +210,72 @@ if __name__ == "__main__":
         random_energy_mean_demean_mlp,
         random_energy_std_demean_mlp,
         random_energy_covered_demean_mlp,
-    ) = energy_eigval_treshold(eigvecs_mlp, eigvals_mlp, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_mlp, eigvals_mlp, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     print("Projecting on SIREN-5...")
     (
         random_energy_mean_demean_5,
         random_energy_std_demean_5,
         random_energy_covered_demean_5,
-    ) = energy_eigval_treshold(eigvecs_5, eigvals_5, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_5, eigvals_5, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     print("Projecting on SIREN-10...")
     (
         random_energy_mean_demean_10,
         random_energy_std_demean_10,
         random_energy_covered_demean_10,
-    ) = energy_eigval_treshold(eigvecs_10, eigvals_10, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_10, eigvals_10, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     print("Projecting on SIREN-20...")
     (
         random_energy_mean_demean_20,
         random_energy_std_demean_20,
         random_energy_covered_demean_20,
-    ) = energy_eigval_treshold(eigvecs_20, eigvals_20, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_20, eigvals_20, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     print("Projecting on SIREN-40...")
     (
         random_energy_mean_demean_40,
         random_energy_std_demean_40,
         random_energy_covered_demean_40,
-    ) = energy_eigval_treshold(eigvecs_40, eigvals_40, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_40, eigvals_40, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     print("Projecting on SIREN-60...")
     (
         random_energy_mean_demean_60,
         random_energy_std_demean_60,
         random_energy_covered_demean_60,
-    ) = energy_eigval_treshold(eigvecs_60, eigvals_60, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_60, eigvals_60, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     print("Projecting on SIREN-80...")
     (
         random_energy_mean_demean_80,
         random_energy_std_demean_80,
         random_energy_covered_demean_80,
-    ) = energy_eigval_treshold(eigvecs_80, eigvals_80, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_80, eigvals_80, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     print("Projecting on SIREN-100...")
     (
         random_energy_mean_demean_100,
         random_energy_std_demean_100,
         random_energy_covered_demean_100,
-    ) = energy_eigval_treshold(eigvecs_100, eigvals_100, num_examples=NUM_EXAMPLES, ds_test=ds_test)
+    ) = energy_eigval_treshold(
+        eigvecs_100, eigvals_100, num_examples=NUM_EXAMPLES, ds_test=ds_test
+    )
 
     colors = FOURIER_CMAP(jnp.linspace(0, 1, 7))
 
@@ -317,7 +352,7 @@ if __name__ == "__main__":
         parac_energy_mean_demean,
         label="PARAC",
         linewidth=2,
-        color='blue',
+        color="blue",
     )
 
     plt.xlim(1, 1e-10)
