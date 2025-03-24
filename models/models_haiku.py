@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# parac_params = jnp.load(os.getenv("PARAC_PARAMS_PATH")) # ! uncomment this for parac
+staf_params = jnp.load(os.getenv("STAF_PARAMS_PATH"))
+
 
 class FINERLayer(hk.Module):
     def __init__(self, in_f, out_f, w0=200, bs_scale=5, is_first=False, is_last=False):
@@ -17,7 +18,6 @@ class FINERLayer(hk.Module):
         self.out_f = out_f
         self.ws_range = 1 / in_f if self.is_first else jnp.sqrt(6 / in_f) / w0
         self.bs_scale = bs_scale
-
 
     def gen_scale(self, x):
         return jnp.abs(x) + 1
@@ -37,6 +37,7 @@ class FINERLayer(hk.Module):
 
         return x + 0.5 if self.is_last else self.w0 * self.gen_scale(x)
 
+
 class FINER(hk.Module):
     def __init__(self, w0, bs_scale, width, hidden_w0, depth):
         super().__init__()
@@ -49,7 +50,9 @@ class FINER(hk.Module):
     def __call__(self, coords):
         sh = coords.shape
         x = jnp.reshape(coords, [-1, 2])
-        x = FINERLayer(x.shape[-1], self.width, is_first=True, w0=self.w0, bs_scale=self.bs_scale)(x)
+        x = FINERLayer(
+            x.shape[-1], self.width, is_first=True, w0=self.w0, bs_scale=self.bs_scale
+        )(x)
         x = jnp.sin(x)
 
         for _ in range(self.depth - 2):
@@ -62,7 +65,7 @@ class FINER(hk.Module):
         return out
 
 
-class PARACLayer(hk.Module):
+class STAFLayer(hk.Module):
     def __init__(
         self, in_f, out_f, layer_idx, bias=True, w0=30, is_first=False, is_last=False
     ):
@@ -81,17 +84,17 @@ class PARACLayer(hk.Module):
         self.ws = hk.get_parameter(
             "omegas",
             shape=(self.nf,),
-            init=lambda x1, x2: parac_params["ws"][self.layer_idx],
+            init=lambda x1, x2: staf_params["ws"][self.layer_idx],
         )
         self.phis = hk.get_parameter(
             "phis",
             shape=(self.nf,),
-            init=lambda x1, x2: parac_params["phis"][self.layer_idx],
+            init=lambda x1, x2: staf_params["phis"][self.layer_idx],
         )
         self.bs = hk.get_parameter(
             "bs",
             shape=(self.nf,),
-            init=lambda x1, x2: parac_params["bs"][self.layer_idx],
+            init=lambda x1, x2: staf_params["bs"][self.layer_idx],
         )
 
         x = hk.Linear(
@@ -102,10 +105,10 @@ class PARACLayer(hk.Module):
             ),
         )(x)
 
-        x = self.parac_activation(x)
+        x = self.staf_activation(x)
         return x
 
-    def parac_activation(self, x):
+    def staf_activation(self, x):
         x = x[:, :, None]
         x = x.repeat(self.ws.shape[0], axis=-1)
 
@@ -119,7 +122,7 @@ class PARACLayer(hk.Module):
         return temp2
 
 
-class PARAC(hk.Module):
+class STAF(hk.Module):
     def __init__(self, w0, width, hidden_w0, depth):
         super().__init__()
         self.w0 = w0
@@ -131,10 +134,10 @@ class PARAC(hk.Module):
         sh = coords.shape
         x = jnp.reshape(coords, [-1, 2])
 
-        x = PARACLayer(x.shape[-1], self.width, 0, is_first=True, w0=self.w0)(x)
+        x = STAFLayer(x.shape[-1], self.width, 0, is_first=True, w0=self.w0)(x)
 
         for i in range(1, self.depth - 1):
-            x = PARACLayer(x.shape[-1], self.width, i, w0=self.hidden_w0)(x)
+            x = STAFLayer(x.shape[-1], self.width, i, w0=self.hidden_w0)(x)
 
         out = hk.Linear(1)(x)
         out = jnp.reshape(out, list(sh[:-1]) + [1])

@@ -8,7 +8,7 @@ import numpy as np
 import seaborn as sns
 from jax import random
 
-from models.models_haiku import FFN, FINER, MLP, PARAC, SIREN
+from models.models_haiku import FFN, FINER, MLP, STAF, SIREN
 from utils.graphics import FOURIER_CMAP
 from utils.meta_learn import DEFAULT_GRID, DEFAULT_RESOLUTION
 from utils.ntk import ntk_eigendecomposition
@@ -78,11 +78,11 @@ if __name__ == "__main__":
     BATCH_SIZE = 128
     DEFAULT_GRID = jnp.reshape(DEFAULT_GRID, [-1, 2])
 
-    # # Build models to compare
-    # model_SIREN = hk.without_apply_rng(
-    #     hk.transform(lambda x: SIREN(w0=30, width=256, hidden_w0=30, depth=5)(x))
-    # )
-    # params_SIREN = model_SIREN.init(random.PRNGKey(0), jnp.ones((1, 2)))
+    # Build models to compare
+    model_SIREN = hk.without_apply_rng(
+        hk.transform(lambda x: SIREN(w0=30, width=256, hidden_w0=30, depth=5)(x))
+    )
+    params_SIREN = model_SIREN.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
     model_FINER = hk.without_apply_rng(
         hk.transform(
@@ -91,133 +91,133 @@ if __name__ == "__main__":
     )
     params_FINER = model_FINER.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
-    # model_PARAC = hk.without_apply_rng(
-    #     hk.transform(lambda x: PARAC(w0=30, width=256, hidden_w0=30, depth=5)(x))
-    # )
-    # params_PARAC = model_PARAC.init(random.PRNGKey(0), jnp.ones((1, 2)))
+    model_STAF = hk.without_apply_rng(
+        hk.transform(lambda x: STAF(w0=30, width=256, hidden_w0=30, depth=5)(x))
+    )
+    params_STAF = model_STAF.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
-    # model_MLP = hk.without_apply_rng(hk.transform(lambda x: MLP(width=256, depth=5)(x)))
-    # params_mlp = model_MLP.init(random.PRNGKey(0), jnp.ones((1, 2)))
+    model_MLP = hk.without_apply_rng(hk.transform(lambda x: MLP(width=256, depth=5)(x)))
+    params_mlp = model_MLP.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
-    # model_SIREN_5 = hk.without_apply_rng(
-    #     hk.transform(lambda x: SIREN(w0=5, width=256, hidden_w0=30, depth=5)(x))
-    # )
-    # params_SIREN_5 = model_SIREN_5.init(random.PRNGKey(0), jnp.ones((1, 2)))
+    model_SIREN_5 = hk.without_apply_rng(
+        hk.transform(lambda x: SIREN(w0=5, width=256, hidden_w0=30, depth=5)(x))
+    )
+    params_SIREN_5 = model_SIREN_5.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
-    # model_SIREN_100 = hk.without_apply_rng(
-    #     hk.transform(lambda x: SIREN(w0=100, width=256, hidden_w0=30, depth=5)(x))
-    # )
-    # params_SIREN_100 = model_SIREN_100.init(random.PRNGKey(0), jnp.ones((1, 2)))
+    model_SIREN_100 = hk.without_apply_rng(
+        hk.transform(lambda x: SIREN(w0=100, width=256, hidden_w0=30, depth=5)(x))
+    )
+    params_SIREN_100 = model_SIREN_100.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
-    # model_FFN_1 = hk.without_apply_rng(
-    #     hk.transform(lambda x: FFN(sigma=1, width=256, depth=5)(x))
-    # )
-    # params_FFN_1 = model_FFN_1.init(random.PRNGKey(0), jnp.ones((1, 2)))
+    model_FFN_1 = hk.without_apply_rng(
+        hk.transform(lambda x: FFN(sigma=1, width=256, depth=5)(x))
+    )
+    params_FFN_1 = model_FFN_1.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
-    # model_FFN_10 = hk.without_apply_rng(
-    #     hk.transform(lambda x: FFN(sigma=1, width=256, depth=5)(x))
-    # )
-    # params_FFN_10 = model_FFN_10.init(random.PRNGKey(0), jnp.ones((1, 2)))
+    model_FFN_10 = hk.without_apply_rng(
+        hk.transform(lambda x: FFN(sigma=1, width=256, depth=5)(x))
+    )
+    params_FFN_10 = model_FFN_10.init(random.PRNGKey(0), jnp.ones((1, 2)))
 
-    # with open("maml_celebA_5000.pickle", "rb") as handle:
-    #     params_meta = pickle.load(handle)
+    with open("maml_celebA_5000.pickle", "rb") as handle:
+        params_meta = pickle.load(handle)
 
-    ## Plot eigenvectors
-    # print("Computing and plotting NTK eigenvectors of SIREN (meta)...")
-    # eigvals_meta, eigvecs_meta, ntk_matrix_meta = show_ntk_eigval_eigvec(
-    #     model_SIREN,
-    #     params_meta,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="meta_maml",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    # Plot eigenvectors
+    print("Computing and plotting NTK eigenvectors of SIREN (meta)...")
+    eigvals_meta, eigvecs_meta, ntk_matrix_meta = show_ntk_eigval_eigvec(
+        model_SIREN,
+        params_meta,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="meta_maml",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
-    # print("Computing and plotting NTK eigenvectors of MLP...")
-    # eigvals_mlp, eigvecs_mlp, ntk_matrix_mlp = show_ntk_eigval_eigvec(
-    #     model_MLP,
-    #     params_mlp,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="relu_mlp_",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    print("Computing and plotting NTK eigenvectors of MLP...")
+    eigvals_mlp, eigvecs_mlp, ntk_matrix_mlp = show_ntk_eigval_eigvec(
+        model_MLP,
+        params_mlp,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="relu_mlp_",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
-    # print("Computing and plotting NTK eigenvectors of SIREN-5...")
-    # eigvals_5, eigvecs_5, ntk_matrix_5 = show_ntk_eigval_eigvec(
-    #     model_SIREN_5,
-    #     params_SIREN_5,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="siren_5_",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    print("Computing and plotting NTK eigenvectors of SIREN-5...")
+    eigvals_5, eigvecs_5, ntk_matrix_5 = show_ntk_eigval_eigvec(
+        model_SIREN_5,
+        params_SIREN_5,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="siren_5_",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
-    # print("Computing and plotting NTK eigenvectors of SIREN-30...")
-    # eigvals_30, eigvecs_30, ntk_matrix_30 = show_ntk_eigval_eigvec(
-    #     model_SIREN,
-    #     params_SIREN,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="siren_30_",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    print("Computing and plotting NTK eigenvectors of SIREN-30...")
+    eigvals_30, eigvecs_30, ntk_matrix_30 = show_ntk_eigval_eigvec(
+        model_SIREN,
+        params_SIREN,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="siren_30_",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
-    # print("Computing and plotting NTK eigenvectors of SIREN-100...")
-    # eigvals_100, eigvecs_100, ntk_matrix_100 = show_ntk_eigval_eigvec(
-    #     model_SIREN_100,
-    #     params_SIREN_100,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="siren_100_",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    print("Computing and plotting NTK eigenvectors of SIREN-100...")
+    eigvals_100, eigvecs_100, ntk_matrix_100 = show_ntk_eigval_eigvec(
+        model_SIREN_100,
+        params_SIREN_100,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="siren_100_",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
-    # print("Computing and plotting NTK eigenvectors of FFN-10...")
-    # eigvals_ffn_10, eigvecs_ffn_10, ntk_matrix_ffn_10 = show_ntk_eigval_eigvec(
-    #     model_FFN_10,
-    #     params_FFN_10,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="ffn_10_",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    print("Computing and plotting NTK eigenvectors of FFN-10...")
+    eigvals_ffn_10, eigvecs_ffn_10, ntk_matrix_ffn_10 = show_ntk_eigval_eigvec(
+        model_FFN_10,
+        params_FFN_10,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="ffn_10_",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
-    # print("Computing and plotting NTK eigenvectors of FFN-1...")
-    # eigvals_ffn_1, eigvecs_ffn_1, ntk_matrix_ffn_1 = show_ntk_eigval_eigvec(
-    #     model_FFN_1,
-    #     params_FFN_1,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="ffn_1_",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    print("Computing and plotting NTK eigenvectors of FFN-1...")
+    eigvals_ffn_1, eigvecs_ffn_1, ntk_matrix_ffn_1 = show_ntk_eigval_eigvec(
+        model_FFN_1,
+        params_FFN_1,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="ffn_1_",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
-    # print("Computing and plotting NTK eigenvectors of PARAC...")
-    # eigvals_parac, eigvecs_parac, ntk_matrix_parac = show_ntk_eigval_eigvec(
-    #     model_PARAC,
-    #     params_PARAC,
-    #     cmap=FOURIER_CMAP,
-    #     savefig=True,
-    #     keyword="parac_",
-    #     data=DEFAULT_GRID,
-    #     image_size=DEFAULT_RESOLUTION,
-    #     batch_size=BATCH_SIZE,
-    # )
+    print("Computing and plotting NTK eigenvectors of STAF...")
+    eigvals_staf, eigvecs_staf, ntk_matrix_staf = show_ntk_eigval_eigvec(
+        model_STAF,
+        params_STAF,
+        cmap=FOURIER_CMAP,
+        savefig=True,
+        keyword="staf_",
+        data=DEFAULT_GRID,
+        image_size=DEFAULT_RESOLUTION,
+        batch_size=BATCH_SIZE,
+    )
 
     print("Computing and plotting NTK eigenvectors of FINER...")
     eigvals_finer, eigvecs_finer, ntk_matrix_finer = show_ntk_eigval_eigvec(
